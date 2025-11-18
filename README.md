@@ -127,6 +127,34 @@ wandb login
 
 ## 🚀 快速开始
 
+### 📦 数据准备（QuPath 用户）
+
+如果您使用 QuPath 导出完整的 WSI 掩码，需要先切成小块：
+
+```bash
+# 1. 预览 patch 提取效果
+python scripts/preview_patches.py \
+    --image /path/to/wsi_image.png \
+    --mask /path/to/wsi_mask.png \
+    --patch-size 256
+
+# 2. 提取 patches
+python scripts/extract_patches.py \
+    --image-dir /path/to/QuPath_Export \
+    --mask-dir /path/to/QuPath_Export \
+    --output-dir ./Patches \
+    --patch-size 256 \
+    --stride 256 \
+    --min-foreground 0.05
+
+# 3. 验证数据
+python scripts/validate_data.py --data-dir ./Patches --show-sample
+```
+
+📚 **详细指南**: [数据准备完整文档](docs/DATA_PREPARATION.md)
+
+---
+
 ### 方法 1: Google Colab（推荐）
 
 1. 打开 Colab Notebook: `notebooks/Osteoblast_Segmentation_HPO.ipynb`

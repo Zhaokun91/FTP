@@ -18,6 +18,7 @@
 - [项目结构](#项目结构)
 - [安装](#安装)
 - [快速开始](#快速开始)
+- [推理和部署](#推理和部署)
 - [详细使用指南](#详细使用指南)
 - [配置说明](#配置说明)
 - [结果分析](#结果分析)
@@ -85,15 +86,25 @@ batch_size: [8, 16, 32]
 FTP/
 ├── config/                      # 配置文件
 │   ├── hpo_config.yaml         # 完整HPO配置
-│   └── simple_hpo_config.yaml  # 简化版配置
+│   ├── sam_hpo_config.yaml     # SAM专用配置
+│   └── sam_vs_unet_config.yaml # SAM对比配置
 ├── src/                         # 源代码
 │   ├── data/                   # 数据处理
-│   ├── models/                 # 模型定义
+│   ├── models/                 # 模型定义（含SAM适配器）
 │   ├── utils/                  # 工具函数
 │   └── train.py                # 训练逻辑
+├── docs/                        # 文档
+│   ├── DATA_PREPARATION.md     # 数据准备指南
+│   ├── INFERENCE_GUIDE.md      # 推理部署指南
+│   └── SAM_USAGE.md            # SAM使用指南
 ├── notebooks/                   # Jupyter Notebooks
 │   └── Osteoblast_Segmentation_HPO.ipynb
 ├── scripts/                     # 辅助脚本
+│   ├── extract_patches.py      # Patch提取
+│   ├── preview_patches.py      # Patch预览
+│   ├── validate_data.py        # 数据验证
+│   ├── wsi_inference.py        # WSI推理
+│   ├── download_sam_checkpoints.py  # SAM下载
 │   └── analyze_sweep.py        # 结果分析
 ├── run_hpo.py                  # HPO主程序
 └── requirements.txt            # 依赖列表
@@ -152,6 +163,46 @@ python scripts/validate_data.py --data-dir ./Patches --show-sample
 ```
 
 📚 **详细指南**: [数据准备完整文档](docs/DATA_PREPARATION.md)
+
+---
+
+## 🔮 推理和部署
+
+训练完成后，使用最佳模型对新的 WSI 进行预测：
+
+### 基础推理
+
+```bash
+# 对新的 WSI 进行预测
+python scripts/wsi_inference.py \
+    --image /path/to/new_wsi.png \
+    --model /path/to/best_model.pth \
+    --output ./predictions
+```
+
+### 高精度推理（推荐生产环境）
+
+```bash
+# 使用 TTA（测试时增强）+ 后处理 + QuPath 导出
+python scripts/wsi_inference.py \
+    --image /path/to/new_wsi.png \
+    --model /path/to/best_model.pth \
+    --output ./predictions \
+    --tta \
+    --post-process \
+    --save-for-qupath \
+    --stride 128
+```
+
+### 主要功能
+
+- **滑动窗口推理**: 自动处理任意大小的 WSI
+- **测试时增强 (TTA)**: 提升 2-5% Dice 分数（根据文献）
+- **后处理**: 形态学操作，去除噪点和填充孔洞
+- **QuPath 集成**: 直接导出为 QuPath 可导入格式
+- **批量处理**: 一次处理多个 WSI
+
+📚 **完整指南**: [推理和部署文档](docs/INFERENCE_GUIDE.md)
 
 ---
 

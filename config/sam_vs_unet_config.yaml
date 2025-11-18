@@ -1,0 +1,72 @@
+# SAM vs U-Net 对比配置
+# Comparison between SAM and Traditional Models
+
+project: "Osteoblast_SAM_vs_UNet"
+entity: null
+
+method: bayes
+
+metric:
+  name: validation_dice
+  goal: maximize
+
+# 超参数搜索空间
+parameters:
+  # === 模型选择（包含 SAM 和传统模型）===
+  model_name:
+    values:
+      # 传统模型
+      - "U-Net"
+      - "U-Net++"
+      # SAM 系列
+      - "SAM-ViT-B"
+      - "MedSAM"
+
+  # === 编码器（仅用于传统模型）===
+  encoder_name:
+    values:
+      - "resnet34"
+      - "efficientnet-b0"
+
+  # === SAM 特定参数 ===
+  freeze_encoder:
+    values: [true, false]
+
+  prompt_strategy:
+    values: ["grid", "center"]
+
+  num_prompts:
+    values: [9, 16]
+
+  # === 通用参数 ===
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-6
+    max: 1e-3
+
+  batch_size:
+    values: [2, 4, 8]
+
+  loss_function:
+    values:
+      - "DiceLoss"
+      - "DiceFocalLoss"
+
+# 固定参数
+fixed_params:
+  num_epochs: 30
+  num_workers: 2
+  image_size: [512, 512]  # 折中分辨率
+  num_classes: 2
+  data_dir: "/content/drive/MyDrive/Patches"
+  output_dir: "/content/drive/MyDrive/SAM_vs_UNet_Results"
+  val_split: 0.2
+  random_seed: 42
+  use_amp: true
+  optimizer: "AdamW"
+  scheduler: "CosineAnnealingLR"
+  weight_decay: 1e-4
+
+run_config:
+  count: 30
+  parallel: 1

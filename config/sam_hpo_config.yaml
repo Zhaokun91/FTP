@@ -1,0 +1,120 @@
+# SAM/MedSAM 超参数优化配置
+# HPO Configuration for SAM and MedSAM Models
+
+project: "Osteoblast_SAM_HPO"
+entity: null
+
+# 优化方法
+method: bayes
+
+# 优化目标
+metric:
+  name: validation_dice
+  goal: maximize
+
+# 早停策略
+early_terminate:
+  type: hyperband
+  min_iter: 3
+  eta: 2
+  s: 2
+
+# SAM 超参数搜索空间
+parameters:
+  # === SAM 模型选择 ===
+  model_name:
+    values:
+      - "SAM-ViT-B"      # SAM with ViT-Base (轻量)
+      - "SAM-ViT-L"      # SAM with ViT-Large (平衡)
+      - "SAM-ViT-H"      # SAM with ViT-Huge (最强)
+      - "MedSAM"         # 医学图像专用 SAM
+
+  # === SAM 特定参数 ===
+
+  # 编码器冻结策略
+  freeze_encoder:
+    values: [true, false]  # true=仅微调解码器，false=全模型微调
+
+  # 提示生成策略
+  prompt_strategy:
+    values:
+      - "grid"      # 网格采样（推荐）
+      - "center"    # 中心点
+      - "random"    # 随机采样
+
+  # 提示点数量
+  num_prompts:
+    values: [4, 9, 16, 25]  # 对应 2x2, 3x3, 4x4, 5x5 网格
+
+  # === 通用训练参数 ===
+
+  # 学习率（SAM 通常需要较小的学习率）
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-6      # 更小的学习率
+    max: 1e-4      # 最大也较小
+
+  # 批次大小（SAM 内存占用较大）
+  batch_size:
+    values: [1, 2, 4]  # 较小的批次
+
+  # 优化器
+  optimizer:
+    values:
+      - "AdamW"    # SAM 推荐使用 AdamW
+
+  # 损失函数
+  loss_function:
+    values:
+      - "DiceLoss"
+      - "FocalLoss"
+      - "DiceFocalLoss"
+
+  # 权重衰减
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-3
+
+  # 学习率调度器
+  scheduler:
+    values:
+      - "CosineAnnealingLR"
+      - "ReduceLROnPlateau"
+
+# === 固定参数 ===
+fixed_params:
+  # 训练配置
+  num_epochs: 50
+  num_workers: 2
+  image_size: [1024, 1024]  # SAM 原生分辨率为 1024x1024
+  num_classes: 2
+  early_stopping_patience: 15
+  save_top_k: 3
+
+  # 数据路径
+  data_dir: "/content/drive/MyDrive/Patches"
+  output_dir: "/content/drive/MyDrive/SAM_HPO_Results"
+
+  # 验证集比例
+  val_split: 0.2
+
+  # 随机种子
+  random_seed: 42
+
+  # 混合精度训练（SAM 建议使用）
+  use_amp: true
+
+  # 梯度裁剪（SAM 训练稳定性）
+  gradient_clip_val: 1.0
+
+  # SAM 检查点路径（可选，留空则自动下载）
+  checkpoint_path: null
+
+# Sweep 运行配置
+run_config:
+  # 最大试验次数（SAM 训练较慢，建议减少）
+  count: 20
+
+  # 并行运行数量
+  parallel: 1

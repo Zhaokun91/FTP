@@ -6,6 +6,7 @@ Model Factory for creating segmentation models
 import segmentation_models_pytorch as smp
 import torch.nn as nn
 from typing import Optional
+import warnings
 
 
 def create_model(
@@ -21,7 +22,7 @@ def create_model(
     创建分割模型
 
     Args:
-        model_name: 模型名称 (U-Net, U-Net++, FPN, DeepLabV3+等)
+        model_name: 模型名称 (U-Net, U-Net++, FPN, DeepLabV3+, SAM-ViT-B, MedSAM等)
         encoder_name: 编码器骨干网络名称
         encoder_weights: 预训练权重 ("imagenet" 或 None)
         in_channels: 输入通道数
@@ -32,6 +33,14 @@ def create_model(
     Returns:
         PyTorch模型
     """
+    # 检查是否是 SAM 系列模型
+    if "sam" in model_name.lower() or "medsam" in model_name.lower():
+        return _create_sam_model(
+            model_name=model_name,
+            num_classes=num_classes,
+            **kwargs
+        )
+
     model_name = model_name.lower().replace("-", "").replace("_", "")
 
     # 支持的模型字典
@@ -68,6 +77,44 @@ def create_model(
     )
 
     return model
+
+
+def _create_sam_model(
+    model_name: str,
+    num_classes: int = 2,
+    checkpoint_path: Optional[str] = None,
+    freeze_encoder: bool = True,
+    **kwargs
+) -> nn.Module:
+    """
+    创建 SAM 系列模型
+
+    Args:
+        model_name: SAM 模型名称
+        num_classes: 输出类别数
+        checkpoint_path: 预训练模型路径
+        freeze_encoder: 是否冻结编码器
+        **kwargs: 其他参数
+
+    Returns:
+        SAM 模型
+    """
+    try:
+        from .sam_adapter import create_sam_model
+    except ImportError:
+        warnings.warn(
+            "SAM adapter not available. Please ensure segment-anything is installed.\n"
+            "Install with: pip install segment-anything"
+        )
+        raise
+
+    return create_sam_model(
+        model_name=model_name,
+        checkpoint_path=checkpoint_path,
+        freeze_encoder=freeze_encoder,
+        num_classes=num_classes,
+        **kwargs
+    )
 
 
 def get_model_info(model: nn.Module) -> dict:

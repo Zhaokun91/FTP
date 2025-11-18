@@ -37,7 +37,14 @@
 ### 🎯 丰富的模型选择
 
 支持多种先进的分割模型：
+
+**传统 CNN 模型：**
 - U-Net, U-Net++, FPN, DeepLabV3+, PSPNet, LinkNet
+
+**🆕 Transformer 模型（SAM 系列）：**
+- **SAM (Segment Anything Model)** - Meta AI 的通用分割模型
+- **MedSAM** - 专门为医学图像优化的 SAM 变体
+- 支持 ViT-B, ViT-L, ViT-H 三种规模
 
 ### 📊 多种编码器骨干网络
 
@@ -207,6 +214,39 @@ A: 减小 `batch_size`、`image_size` 或使用更轻量的编码器。
 
 **Q: Colab 超时？**
 A: 使用 Colab Pro 或本地运行，可以继续未完成的 Sweep。
+
+**Q: 如何使用 SAM/MedSAM？**
+A: 查看详细的 [SAM 使用指南](docs/SAM_USAGE.md)，包含下载、配置和使用方法。
+
+---
+
+## 🎯 SAM/MedSAM 支持
+
+系统现已支持 **Segment Anything Model (SAM)** 和 **MedSAM**！
+
+### 快速开始使用 SAM
+
+```bash
+# 1. 下载 SAM 检查点
+python scripts/download_sam_checkpoints.py --model vit_b --output ./checkpoints
+
+# 2. 运行 SAM HPO
+python run_hpo.py --config config/sam_hpo_config.yaml --count 10
+
+# 3. SAM vs U-Net 对比
+python run_hpo.py --config config/sam_vs_unet_config.yaml
+```
+
+### SAM 模型选项
+
+| 模型 | 参数量 | 内存占用 | 推荐场景 |
+|------|--------|---------|---------|
+| SAM-ViT-B | 90M | ~4GB | 快速测试，资源受限 |
+| SAM-ViT-L | 300M | ~8GB | 平衡性能 |
+| SAM-ViT-H | 630M | ~16GB | 最高精度 |
+| MedSAM | 90M | ~4GB | 医学图像（推荐） |
+
+📚 **详细文档**: [SAM 完整使用指南](docs/SAM_USAGE.md)
 
 ---
 

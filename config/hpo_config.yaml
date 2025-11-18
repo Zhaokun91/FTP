@@ -1,0 +1,132 @@
+# W&B Sweeps 超参数优化配置文件
+# Hyperparameter Optimization Configuration for Weights & Biases Sweeps
+
+# 项目信息
+project: "Osteoblast_HPO"
+entity: null  # 您的 W&B 用户名/团队名，留空则使用默认账号
+
+# 优化方法
+# - grid: 网格搜索（尝试所有组合）
+# - random: 随机搜索
+# - bayes: 贝叶斯优化（智能搜索，推荐）
+method: bayes
+
+# 优化目标
+metric:
+  name: validation_dice  # 要优化的指标名称
+  goal: maximize         # maximize（最大化）或 minimize（最小化）
+
+# 早停策略（可选）
+# 如果连续 patience 次试验没有改善，自动停止
+early_terminate:
+  type: hyperband
+  min_iter: 3
+  eta: 2
+  s: 2
+
+# 超参数搜索空间
+parameters:
+  # 模型架构
+  model_name:
+    values:
+      - "U-Net"
+      - "U-Net++"
+      - "FPN"
+      - "DeepLabV3+"
+
+  # 编码器（Encoder）骨干网络
+  encoder_name:
+    values:
+      - "resnet34"
+      - "resnet50"
+      - "efficientnet-b0"
+      - "timm-efficientnet-b3"
+
+  # 学习率（对数空间搜索）
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-3
+
+  # 批次大小
+  batch_size:
+    values: [4, 8, 16]
+
+  # 优化器
+  optimizer:
+    values:
+      - "Adam"
+      - "AdamW"
+      - "SGD"
+
+  # 损失函数
+  loss_function:
+    values:
+      - "DiceLoss"
+      - "FocalLoss"
+      - "DiceFocalLoss"
+      - "TverskyLoss"
+
+  # 权重衰减（L2正则化）
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-6
+    max: 1e-3
+
+  # 数据增强强度
+  augmentation_prob:
+    distribution: uniform
+    min: 0.3
+    max: 0.8
+
+  # Dropout比例
+  dropout:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+
+  # 学习率调度器
+  scheduler:
+    values:
+      - "CosineAnnealingLR"
+      - "ReduceLROnPlateau"
+      - "StepLR"
+
+  # 类别权重（针对不平衡数据）
+  use_class_weights:
+    values: [true, false]
+
+# 固定参数（不参与搜索）
+# 这些参数在所有试验中保持不变
+fixed_params:
+  num_epochs: 50
+  num_workers: 4
+  image_size: [256, 256]
+  num_classes: 2  # 背景 + 前景（骨细胞）
+  early_stopping_patience: 10
+  save_top_k: 3
+
+  # 数据路径（需要根据实际情况修改）
+  data_dir: "/content/drive/MyDrive/Patches"
+  output_dir: "/content/drive/MyDrive/HPO_Results"
+
+  # 验证集比例
+  val_split: 0.2
+
+  # 随机种子（保证可重复性）
+  random_seed: 42
+
+  # 混合精度训练
+  use_amp: true
+
+  # 梯度累积步数
+  gradient_accumulation_steps: 1
+
+# Sweep运行配置
+run_config:
+  # 最大试验次数
+  count: 50
+
+  # 并行运行数量（根据GPU资源调整）
+  # Colab免费版建议设为1
+  parallel: 1

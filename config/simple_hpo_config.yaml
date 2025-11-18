@@ -1,0 +1,43 @@
+# 简化版 HPO 配置
+# Simplified HPO Configuration (适合快速测试)
+
+project: "Osteoblast_HPO_Quick"
+method: random
+
+metric:
+  name: validation_dice
+  goal: maximize
+
+# 简化的搜索空间（只包含最重要的超参数）
+parameters:
+  model_name:
+    values: ["U-Net", "U-Net++"]
+
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-3
+
+  batch_size:
+    values: [8, 16]
+
+  loss_function:
+    values: ["DiceLoss", "FocalLoss"]
+
+fixed_params:
+  num_epochs: 20  # 减少训练轮数以加快测试
+  encoder_name: "resnet34"
+  optimizer: "Adam"
+  scheduler: "CosineAnnealingLR"
+  num_workers: 2
+  image_size: [256, 256]
+  num_classes: 2
+  data_dir: "/content/drive/MyDrive/Patches"
+  output_dir: "/content/drive/MyDrive/HPO_Results"
+  val_split: 0.2
+  random_seed: 42
+  use_amp: true
+
+run_config:
+  count: 10  # 只运行10次试验
+  parallel: 1

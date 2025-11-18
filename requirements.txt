@@ -1,0 +1,36 @@
+# Deep Learning Frameworks
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Medical Image Processing
+monai>=1.3.0
+openslide-python>=1.3.1
+
+# Segmentation Models
+segmentation-models-pytorch>=0.3.3
+
+# Hyperparameter Optimization
+wandb>=0.16.0
+optuna>=3.5.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+albumentations>=1.3.1
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
+
+# Utilities
+pyyaml>=6.0
+tqdm>=4.66.0
+colorama>=0.4.6
+
+# Google Colab Support
+google-colab;platform_system!="Linux"
+gdown>=4.7.1

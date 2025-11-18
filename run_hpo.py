@@ -59,12 +59,19 @@ def train_one_run(config=None):
         device = get_device()
 
         # 准备数据增强
+        # 处理 image_size 类型（可能是 int 或 list/tuple）
+        image_size = config.image_size
+        if isinstance(image_size, int):
+            image_size = (image_size, image_size)
+        else:
+            image_size = tuple(image_size)
+
         train_transform = get_training_augmentation(
-            image_size=tuple(config.image_size),
+            image_size=image_size,
             augmentation_prob=config.get('augmentation_prob', 0.5)
         )
         val_transform = get_validation_augmentation(
-            image_size=tuple(config.image_size)
+            image_size=image_size
         )
 
         # 准备数据加载器

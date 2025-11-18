@@ -61,10 +61,14 @@ class SegmentationDataset(Dataset):
 
         # 读取图像 (RGB)
         image = cv2.imread(str(image_path))
+        if image is None:
+            raise IOError(f"Failed to load image: {image_path}")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # 读取掩码 (灰度)
         mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+        if mask is None:
+            raise IOError(f"Failed to load mask: {mask_path}")
 
         # 二值化掩码 (0: 背景, 1: 前景)
         mask = (mask > 127).astype(np.uint8)
@@ -81,10 +85,14 @@ class SegmentationDataset(Dataset):
 
         # 转换为张量
         if not isinstance(image, torch.Tensor):
+            if not isinstance(image, np.ndarray):
+                raise TypeError(f"Expected numpy array or tensor for image, got {type(image)}")
             # HWC -> CHW
             image = torch.from_numpy(image.transpose(2, 0, 1)).float()
 
         if not isinstance(mask, torch.Tensor):
+            if not isinstance(mask, np.ndarray):
+                raise TypeError(f"Expected numpy array or tensor for mask, got {type(mask)}")
             mask = torch.from_numpy(mask).long()
 
         return image, mask

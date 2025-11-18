@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Optional, Tuple
 import warnings
+import os
 
 
 class SAMSegmentationAdapter(nn.Module):
@@ -64,7 +65,23 @@ class SAMSegmentationAdapter(nn.Module):
             # 使用默认路径或提示用户下载
             checkpoint_path = self._get_default_checkpoint(model_type)
 
-        self.sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
+        # 验证检查点文件存在
+        if not os.path.exists(checkpoint_path):
+            checkpoint_urls = {
+                "vit_b": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth",
+                "vit_l": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth",
+                "vit_h": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
+            }
+            raise FileNotFoundError(
+                f"SAM checkpoint not found: {checkpoint_path}\n"
+                f"Download from: {checkpoint_urls.get(model_type, 'Unknown model type')}\n"
+                f"Or run: python scripts/download_sam_checkpoints.py --model {model_type}"
+            )
+
+        try:
+            self.sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load SAM checkpoint: {checkpoint_path}") from e
 
         # 是否冻结编码器
         if freeze_encoder:
@@ -194,8 +211,10 @@ class SAMSegmentationAdapter(nn.Module):
         # 5. 转换为多类输出
         if self.num_classes == 2:
             # 二分类：背景 + 前景
-            background = 1 - masks
-            output = torch.cat([background, masks], dim=1)  # (B, 2, H, W)
+            # 应用 sigmoid 确保值在 [0, 1] 范围
+            foreground = torch.sigmoid(masks)
+            background = 1 - foreground
+            output = torch.cat([background, foreground], dim=1)  # (B, 2, H, W)
         else:
             # 多分类：使用额外的分类头
             if self.classifier is not None:
@@ -244,8 +263,17 @@ class MedSAMAdapter(nn.Module):
         self.medsam = build_medsam()
 
         if checkpoint_path:
-            checkpoint = torch.load(checkpoint_path, map_location='cpu')
-            self.medsam.load_state_dict(checkpoint, strict=False)
+            if not os.path.exists(checkpoint_path):
+                raise FileNotFoundError(
+                    f"MedSAM checkpoint not found: {checkpoint_path}\n"
+                    f"Download from: https://zenodo.org/records/10155347/files/medsam_vit_b.pth\n"
+                    f"Or run: python scripts/download_sam_checkpoints.py --model medsam"
+                )
+            try:
+                checkpoint = torch.load(checkpoint_path, map_location='cpu')
+                self.medsam.load_state_dict(checkpoint, strict=False)
+            except Exception as e:
+                raise RuntimeError(f"Failed to load MedSAM checkpoint: {checkpoint_path}") from e
 
         # 冻结编码器
         if freeze_encoder:
@@ -274,8 +302,8 @@ class MedSAMAdapter(nn.Module):
         # 调整输出格式
         if output.shape[1] == 1:
             # 单通道输出转为双通道
-            background = 1 - torch.sigmoid(output)
             foreground = torch.sigmoid(output)
+            background = 1 - foreground
             output = torch.cat([background, foreground], dim=1)
 
         return output

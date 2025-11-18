@@ -133,7 +133,7 @@ class WSIInference:
             if self.use_tta:
                 # 测试时增强
                 predictions = []
-                for transform in self.tta_transforms:
+                for transform_idx, transform in enumerate(self.tta_transforms):
                     # 应用变换
                     transformed_batch = []
                     for i in range(batch.shape[0]):
@@ -159,9 +159,24 @@ class WSIInference:
                     # 预测
                     output = self.model(transformed_batch)
 
-                    # 反向变换（使预测对齐）
-                    # 这里简化处理，实际应该反向应用变换
-                    prob = F.softmax(output, dim=1)[:, 1, :, :]  # 取前景概率
+                    # 获取前景概率
+                    prob = F.softmax(output, dim=1)
+                    if prob.shape[1] < 2:
+                        raise ValueError(
+                            f"Model output has {prob.shape[1]} class(es), expected at least 2 for binary segmentation. "
+                            f"Check model configuration."
+                        )
+                    prob = prob[:, 1, :, :]  # 取前景概率
+
+                    # 反向变换（使预测对齐到原始方向）
+                    # transform_idx: 0=原始, 1=HorizontalFlip, 2=VerticalFlip, 3=Transpose
+                    if transform_idx == 1:  # HorizontalFlip
+                        prob = prob.flip(-1)  # 水平翻转回来
+                    elif transform_idx == 2:  # VerticalFlip
+                        prob = prob.flip(-2)  # 垂直翻转回来
+                    elif transform_idx == 3:  # Transpose
+                        prob = prob.transpose(-2, -1)  # 转置回来
+
                     predictions.append(prob)
 
                 # 平均所有 TTA 预测
@@ -169,7 +184,13 @@ class WSIInference:
             else:
                 # 不使用 TTA
                 output = self.model(batch)
-                pred = F.softmax(output, dim=1)[:, 1, :, :]  # 取前景概率
+                pred = F.softmax(output, dim=1)
+                if pred.shape[1] < 2:
+                    raise ValueError(
+                        f"Model output has {pred.shape[1]} class(es), expected at least 2 for binary segmentation. "
+                        f"Check model configuration."
+                    )
+                pred = pred[:, 1, :, :]  # 取前景概率
 
             # 二值化
             pred_mask = (pred > 0.5).cpu().numpy().astype(np.uint8)
